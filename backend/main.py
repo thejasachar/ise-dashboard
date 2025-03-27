@@ -18,7 +18,8 @@ load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": os.getenv("CORS_ORIGINS", "http://localhost:3000")}})
+CORS(app, resources={r"/*": {"origins": "*"}})
+
 
 # Secret key for JWT
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")

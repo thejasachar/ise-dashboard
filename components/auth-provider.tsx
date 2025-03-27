@@ -30,27 +30,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Check if user is logged in on initial load
   useEffect(() => {
-    const storedUser = localStorage.getItem("ise-user")
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
+    const checkAuthStatus = async () => {
+      try {
+        setLoading(true)
+        // First check for token in localStorage
+        const token = localStorage.getItem("token")
+        if (!token) {
+          setLoading(false)
+          return
+        }
+
+        // If we have a token, try to get user data from localStorage as a fallback
+        const storedUser = localStorage.getItem("ise-user")
+        if (storedUser) {
+          setUser(JSON.parse(storedUser))
+        }
+        
+        // In a real app, you would verify the token with the backend here
+        // const response = await fetch("http://localhost:5000/api/verify-token", {
+        //   headers: {
+        //     Authorization: Bearer ${token}
+        //   }
+        // })
+        // if (response.ok) {
+        //   const userData = await response.json()
+        //   setUser(userData.user)
+        // } else {
+        //   localStorage.removeItem("token")
+        //   localStorage.removeItem("ise-user")
+        // }
+      } catch (error) {
+        console.error("Auth check error:", error)
+      } finally {
+        setLoading(false)
+      }
     }
-    setLoading(false)
+
+    checkAuthStatus()
   }, [])
 
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true)
-      // In a real app, this would be an API call to your backend
-      // For demo purposes, we'll simulate a successful login
-      const mockUser = {
-        id: "user123",
-        name: "Demo User",
-        email: email,
+      
+      // Make the API call to the backend
+      const response = await fetch("http://localhost:5000/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Login failed")
       }
 
-      // Store user in localStorage
-      localStorage.setItem("ise-user", JSON.stringify(mockUser))
-      setUser(mockUser)
+      const data = await response.json()
+      
+      // Save the token to localStorage
+      localStorage.setItem("token", data.token)
+      
+      // Save the user data
+      const userData = {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+      }
+      
+      localStorage.setItem("ise-user", JSON.stringify(userData))
+      setUser(userData)
 
       toast({
         title: "Login successful",
@@ -58,12 +111,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
 
       router.push("/dashboard")
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Login failed",
-        description: "Please check your credentials and try again.",
+        description: error.message || "Please check your credentials and try again.",
         variant: "destructive",
       })
+      console.error("Error logging in:", error)
     } finally {
       setLoading(false)
     }
@@ -72,36 +126,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, name: string) => {
     try {
       setLoading(true)
-      // In a real app, this would be an API call to your backend
-      // For demo purposes, we'll simulate a successful registration
-      const mockUser = {
-        id: "user123",
-        name: name,
-        email: email,
+      
+      // Make the API call to the backend
+      const response = await fetch("http://localhost:5000/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || "Registration failed")
       }
 
-      // Store user in localStorage
-      localStorage.setItem("ise-user", JSON.stringify(mockUser))
-      setUser(mockUser)
+      const data = await response.json()
 
       toast({
         title: "Registration successful",
-        description: "Welcome to Interactive Skills Enhancer!",
+        description: "You can now log in to your account.",
       })
 
-      router.push("/dashboard")
-    } catch (error) {
+      // After registration, automatically log the user in
+      await signIn(email, password)
+    } catch (error: any) {
       toast({
         title: "Registration failed",
-        description: "Please try again with different credentials.",
+        description: error.message || "Please try again with different credentials.",
         variant: "destructive",
       })
+      console.error("Error registering:", error)
     } finally {
       setLoading(false)
     }
   }
 
   const signOut = () => {
+    localStorage.removeItem("token")
     localStorage.removeItem("ise-user")
     setUser(null)
     router.push("/")
@@ -121,4 +187,3 @@ export const useAuth = () => {
   }
   return context
 }
-

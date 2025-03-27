@@ -29,29 +29,37 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Redirect to login if not authenticated
+    // Redirect to login if not authenticated and not still loading
     if (!loading && !user) {
       router.push("/login");
       return;
     }
 
     // Fetch user progress data
-    const fetchProgressData = async () => {
+    const fetchProgressData = async (): Promise<void> => {
       if (!user) return;
 
       try {
-        const response = await fetch(`http://localhost:5000/api/get-progress/${user.id}`); // Replace with your backend URL
+        // Fetch progress data from the backend API
+        const response = await fetch(`http://localhost:5000/api/get-progress/${user.id}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
 
         if (!response.ok) {
           throw new Error("Failed to fetch progress data");
         }
 
         const data: ProgressData = await response.json();
+        console.log("Fetched progress data from API:", data); // Debugging log
         setProgressData(data);
       } catch (error) {
+        console.error("Error fetching progress data:", error);
         toast({
           title: "Error fetching progress data",
-          description: "Please try again later.",
+          description: "Unable to load progress data. Please try again later.",
           variant: "destructive",
         });
       } finally {
@@ -282,4 +290,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

@@ -6,82 +6,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/components/auth-provider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { signIn, signUp, loading } = useAuth();
+  
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [registerName, setRegisterName] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    try {
-      const response = await fetch("http://localhost:5000/api/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: loginEmail,
-          password: loginPassword,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Login successful:", data);
-
-        // Save the token to localStorage
-        localStorage.setItem("token", data.token);
-
-        // Redirect to the dashboard
-        router.push("/dashboard");
-      } else {
-        const error = await response.json();
-        alert(`Login failed: ${error.error}`);
-      }
-    } catch (err) {
-      console.error("Error logging in:", err);
-      alert("An error occurred while logging in.");
-    } finally {
-      setLoading(false);
-    }
+    await signIn(loginEmail, loginPassword);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    try {
-      const response = await fetch("http://localhost:5000/api/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: registerName,
-          email: registerEmail,
-          password: registerPassword,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        alert("Registration successful!");
-        console.log("User data:", data);
-      } else {
-        const error = await response.json();
-        alert(`Registration failed: ${error.message}`);
-      }
-    } catch (err) {
-      console.error("Error registering:", err);
-      alert("An error occurred while registering.");
-    } finally {
-      setLoading(false);
-    }
+    await signUp(registerEmail, registerPassword, registerName);
   };
 
   return (
@@ -180,4 +124,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
